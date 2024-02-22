@@ -11,7 +11,7 @@ UserRouter.get("/customer/:id/bonus", userController.getUserBonus)
 UserRouter.get("/customer/:id/basket", userController.getUserBasket)
 UserRouter.get("/customer/:id/paid", userController.getUserPaid)
 UserRouter.get("/customer/:id/settings", userController.getUserSettingsId)
-UserRouter.post("/customer/status", userController.getUserStatus)
+UserRouter.get("/status", userController.getUserStatus)
 UserRouter.post("/customer/settings", userController.getUserSettings)
 UserRouter.post("/customer/basket/delete", userController.getUserBasketDelete)
 module.exports = UserRouter

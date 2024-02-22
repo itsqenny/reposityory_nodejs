@@ -86,12 +86,12 @@ class UserController {
 			}
 		} catch (error) {
 			console.error("Ошибка при выполнении запроса:", error)
-			res.status(500).json({ error: "Ошибка сервера" })
+			res.status(500).json({ error: "Ошиб ~ка сервера" })
 		}
 	}
 	async getUserStatus(req, res) {
-		const { userId, order_id } = req.body
-
+		const { userId, order_id } = req.query
+		console.log(`data: ${userId}, ${order_id}`)
 		try {
 			const user = await db.query(
 				'SELECT "userId", "userOrder" FROM "Users" WHERE "userId" = $1',
@@ -101,7 +101,7 @@ class UserController {
 			if (user.rows.length > 0) {
 				const userOrderString = user.rows[0].userOrder || "[]"
 				const userOrder = JSON.parse(userOrderString)
-
+				console.log(userOrder)
 				if (Array.isArray(userOrder)) {
 					const status = userOrder.find((order) => order.order_id === order_id)
 
@@ -154,7 +154,7 @@ class UserController {
 			'SELECT "filePath" FROM "Users" WHERE "userId" = $1',
 			[id]
 		)
-		const baseUrl = `/api/customer/${id}/settings/photo`
+		const baseUrl = `https://zipperconnect.space/api/customer/${id}/settings/photo`
 		if (photo.rows.length > 0 && photo.rows[0].filePath) {
 			const filePath = photo.rows[0].filePath
 			const fullUrl = `${baseUrl}`
