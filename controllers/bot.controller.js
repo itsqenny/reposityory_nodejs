@@ -12,7 +12,6 @@ class BotController {
 				[userId, first_name, last_name, username]
 			)
 
-			// Проверяем, нужно ли обновить userBonus и startBonus
 			if (!existingUser.rows[0].startBonus) {
 				const updateBonus = await db.query(
 					'UPDATE "Users" SET "userBonus" = 500, "startBonus" = true WHERE "userId" = $1 RETURNING *',
