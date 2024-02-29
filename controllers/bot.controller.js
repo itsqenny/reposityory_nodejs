@@ -7,7 +7,6 @@ class BotController {
 		)
 
 		if (existingUser.rows.length > 0) {
-			// Если пользователь уже существует, обновляем только необходимые поля
 			const updateUser = await db.query(
 				'UPDATE "Users" SET "first_name" = $2, "last_name" = $3, "username" = $4 WHERE "userId" = $1 RETURNING *',
 				[userId, first_name, last_name, username]
