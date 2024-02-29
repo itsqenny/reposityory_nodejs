@@ -1,11 +1,38 @@
 const db = require("../DB/db")
 class BotController {
 	async createUser({ userId, first_name, last_name, username }) {
-		const user = await db.query(
-			'INSERT INTO "Users" ("userId", "first_name", "last_name", "username", "createdAt", "updatedAt") values ($1, $2, $3, $4, NOW(), NOW()) ON CONFLICT ("userId") DO UPDATE SET "first_name" = $2, "last_name" = $3, "username" = $4 RETURNING *',
-			[userId, first_name, last_name, username]
+		const existingUser = await db.query(
+			'SELECT * FROM "Users" WHERE "userId" = $1',
+			[userId]
 		)
-		return user.rows[0]
+
+		if (existingUser.rows.length > 0) {
+			// Если пользователь уже существует, обновляем только необходимые поля
+			const updateUser = await db.query(
+				'UPDATE "Users" SET "first_name" = $2, "last_name" = $3, "username" = $4 WHERE "userId" = $1 RETURNING *',
+				[userId, first_name, last_name, username]
+			)
+
+			// Проверяем, нужно ли обновить userBonus и startBonus
+			if (!existingUser.rows[0].startBonus) {
+				const updateBonus = await db.query(
+					'UPDATE "Users" SET "userBonus" = 500, "startBonus" = true WHERE "userId" = $1 RETURNING *',
+					[userId]
+				)
+
+				return updateBonus.rows[0]
+			} else {
+				return updateUser.rows[0]
+			}
+		} else {
+			// Если пользователь не существует, создаем нового с бонусами
+			const newUser = await db.query(
+				'INSERT INTO "Users" ("userId", "first_name", "last_name", "username", "userBonus", "startBonus", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, 500, true, NOW(), NOW()) RETURNING *',
+				[userId, first_name, last_name, username]
+			)
+
+			return newUser.rows[0]
+		}
 	}
 	async getPhotoId({ userId, filePath }) {
 		const user = await db.query(
