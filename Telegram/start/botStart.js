@@ -1,8 +1,9 @@
+require("dotenv").config()
 const bot = require("../app")
 const description = require("../components/description")
 const botController = require("../../controllers/bot.controller")
 const BotStart = () => {
-	const webAppUrl = "https://zipperapp.vercel.app/"
+	const webAppUrl = process.env.INLINE_URL
 
 	bot.on("message", async (msg) => {
 		const text = msg.text
