@@ -234,10 +234,11 @@ Zipper App снова ждет ваших заказов! ⚡`
 						config
 					)
 					const resGetPayment = getPayment.data
+					const resGetPaymentString = JSON.stringify(resGetPayment)
 
-					console.log(`resGetPayment : ${JSON.stringify(resGetPayment)}`)
+					console.log(`resGetPayment : ${resGetPaymentString}`)
 
-					const match = resGetPayment.match(/\"status\":\"([^"]+)\"/)
+					const match = resGetPaymentString.match(/\"status\":\"([^"]+)\"/)
 					status = match ? match[1] : null
 
 					console.log("Статус оплаты:", status)
