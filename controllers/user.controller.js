@@ -89,6 +89,26 @@ class UserController {
 			res.status(500).json({ error: "Ошиб ~ка сервера" })
 		}
 	}
+	async getUserData(req, res) {
+		const { userId } = req.params
+		try {
+			const user = await db.query(
+				'SELECT "userId", "userOrder" FROM "Users" WHERE "userId" = $1',
+				[userId]
+			)
+			res.json({
+				userId: user.rows[0].userId,
+				phoneNumber: user.rows[0].phoneNumber,
+				userFio: user.rows[0].userFio,
+				userAdress: user.rows[0].userAdress,
+				userCity: user.rows[0].userCity,
+			})
+		} catch (e) {
+			res.status(404).json({
+				error: "Пользователь не найден",
+			})
+		}
+	}
 	async getUserStatus(req, res) {
 		const { userId, order_id } = req.query
 		console.log(`data: ${userId}, ${order_id}`)
@@ -184,13 +204,15 @@ class UserController {
 		res.json(settings.rows[0])
 	}
 	async getUserBasketDelete(req, res) {
-		const { userId, orderId } = req.body
+		const { userId, orderId } = req.query
 		const user = await db.query(
 			'SELECT "userOrder" FROM "Users" WHERE "userId" = $1',
 			[userId]
 		)
+		console.log(`userId: ${userId}, orderId: ${orderId}`)
 		try {
-			if (user) {
+			if (user.rows.length > 0) {
+				// Check if any rows were returned
 				const userOrderArray = JSON.parse(user.rows[0].userOrder)
 
 				// Находим первый элемент с определенным order_id
@@ -219,9 +241,10 @@ class UserController {
 						[JSON.stringify(userOrderArray), userId]
 					)
 
-					res
-						.status(200)
-						.json({ success: true, message: "Товар успешно удален из корзины" })
+					res.status(200).json({
+						success: true,
+						message: "Товар успешно удален из корзины",
+					})
 				} else {
 					res.status(404).json({
 						error:
