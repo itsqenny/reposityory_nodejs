@@ -289,6 +289,141 @@ Zipper App снова ждет ваших заказов! ⚡`
 				.json({ error: "Ошибка", message: "Внутренняя ошибка сервера." })
 		}
 	}
+	async getPaymentSubscription(req, res) {
+		const { name, price, userId, order_id, productId, time } = req.body
+		console.log(name, price, userId, order_id, productId, time)
+		let status = []
+		let paymentId = []
+		let ProductOrder = []
+
+		const allowedUserId = userId
+		if (userId !== allowedUserId) {
+			return res.status(403).json({
+				error: "Доступ запрещен",
+				message: "Вы не имеете разрешения на выполнение этой операции.",
+			})
+		}
+
+		try {
+			const apikey = process.env.TOKEN_P2P
+			const project_id = process.env.ID_P2P
+			const ProductName = name
+			ProductOrder = order_id
+			const ProductPrice = price
+			console.log(ProductPrice)
+			console.log(ProductOrder)
+			console.log(ProductName)
+			const config = {
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+			}
+			const user = await db.query('SELECT * FROM "Users" WHERE "userId" = $1', [
+				userId,
+			])
+
+			if (user) {
+				const userId = user.rows[0].userId
+				const userFio = user.rows[0].userFio || "Не указано"
+				const userAdress = user.rows[0].userAdress || "Не указано"
+				const phoneNumber = user.rows[0].phoneNumber || "Не указано"
+				const userCity = user.rows[0].userCity || "Не указано"
+				console.log(`DataPayemnt: ${JSON.stringify(user.rows[0])}`)
+				const desc = `Вид подписки: ${ProductName}, 
+                      ФИО: ${userFio}, 
+                      Номер для связи ${phoneNumber}`
+				const params = `
+      Поздравляем с покупкой!
+Теперь у вас 🧾 ${ProductName} навсегда
+Zipper App снова ждет ваших заказов! ⚡`
+
+				const dataToSend = {
+					project_id: project_id,
+					order_id: ProductOrder, // Используйте order_id из req.body
+					amount: ProductPrice,
+					apikey: apikey,
+					desc: desc,
+					data: params,
+				}
+
+				const response = await axios.post(
+					"https://p2pkassa.online/api/v1/link",
+					dataToSend,
+					config
+				)
+				const result = response.data
+				console.log(result)
+				if (result && result.link && result.id) {
+					// Создаем URL для второго запроса
+					const paymentUrl = result.link
+					paymentId = result.id
+					console.log(paymentUrl)
+					console.log(paymentId)
+					// Отправляем второй POST-запрос
+
+					const dataToPayment = {
+						id: paymentId,
+						project_id: project_id,
+						apikey: apikey,
+					}
+					const getPayment = await axios.post(
+						"https://p2pkassa.online/api/v1/getPayment",
+						dataToPayment,
+						config
+					)
+					const resGetPayment = getPayment.data
+					const resGetPaymentString = JSON.stringify(resGetPayment)
+
+					console.log(`resGetPayment : ${resGetPaymentString}`)
+
+					const match = resGetPaymentString.match(/\"status\":\"([^"]+)\"/)
+					status = match ? match[1] : null
+
+					console.log("Статус оплаты:", status)
+					const userOrderString = user.rows[0].userSplit
+					console.log("userOrderString:", userOrderString)
+
+					let currentOrders = userOrderString ? JSON.parse(userOrderString) : []
+					// Добавьте новый заказ к существующему значению
+					const newOrder = {
+						id: productId,
+						name: name,
+						order_id: order_id,
+						price: price,
+						status: status,
+						time: time,
+					}
+
+					const updatedOrders = currentOrders.concat(newOrder)
+					console.log("currentOrders before update:", currentOrders)
+					// Обновляем запись в таблице Users
+					await db.query(
+						'UPDATE "Users" SET "userSplit" = $1 WHERE "userId" = $2',
+						[JSON.stringify(updatedOrders), userId]
+					)
+
+					console.log("Заказ успешно добавлен.")
+
+					// Создаем URL для второго запроса
+					// Отправляем второй POST-запрос
+					return res.json({ paymentUrl })
+				} else {
+					console.log("Отсутствуют данные id и link в ответе")
+				}
+			} else {
+				// Если пользователь не найден, обработка ошибки или возврат 404
+				return res
+					.status(400)
+					.json({ error: "Ошибка", message: "Пользователь не найден." })
+			}
+		} catch (error) {
+			// Обработка ошибки
+			console.error(error)
+			return res
+				.status(500)
+				.json({ error: "Ошибка", message: "Внутренняя ошибка сервера." })
+		}
+	}
 }
 
 module.exports = new ProductController()

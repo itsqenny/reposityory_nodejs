@@ -11,12 +11,48 @@ class UserController {
 	}
 	async getUserSubscription(req, res) {
 		const { id } = req.params
-		const subscription = await db.query(
-			'SELECT "userId","userRank" FROM "Users" WHERE "userId" = $1',
-			[id]
-		)
+		try {
+			const subscription = await db.query(
+				'SELECT "userId", "userRank" FROM "Users" WHERE "userId" = $1',
+				[id]
+			)
 
-		res.json(subscription.rows[0])
+			const buy = await db.query(
+				'SELECT "userId", "userSplit" FROM "Users" WHERE "userId" = $1',
+				[id]
+			)
+
+			const userSplit = buy.rows[0].userSplit
+			console.log(`userSplit: ${JSON.stringify(userSplit)}`)
+
+			let userRank = subscription.rows[0].userRank // Default userRank
+
+			try {
+				const userSplitArray = JSON.parse(userSplit)
+
+				// Find the first item in userSplit with "status" equal to "PAID"
+				const paidItem = userSplitArray.find((item) => item.status === "PAID")
+
+				if (paidItem) {
+					userRank = paidItem.name
+				}
+			} catch (parseError) {
+				console.error("Error parsing userSplit JSON:", parseError)
+			}
+
+			console.log(`userRank: ${userRank}`)
+
+			// Update the database with the new userRank value
+			await db.query('UPDATE "Users" SET "userRank" = $1 WHERE "userId" = $2', [
+				userRank,
+				id,
+			])
+
+			res.json({ userId: id, userRank })
+		} catch (error) {
+			console.error(error)
+			res.status(500).json({ error: "Internal Server Error" })
+		}
 	}
 	async getUserBonus(req, res) {
 		const { id } = req.params

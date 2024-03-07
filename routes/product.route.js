@@ -8,5 +8,5 @@ router.get("/products/:id", productController.getProduct)
 router.get("/product", productController.getProductsLimit)
 router.get("/filter", productController.getFilter)
 router.post("/payment", productController.getPayment)
-
+router.post("/payment/subscription", productController.getPaymentSubscription)
 module.exports = router
