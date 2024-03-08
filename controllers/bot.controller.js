@@ -100,8 +100,8 @@ class BotController {
 
 			if (user) {
 				//console.log(`chatId: ${JSON.stringify(user.rows[0].userId)}`)
-				const chatId = "5463868504"
-				const message = `Я слежу за тобой`
+				const chatId = user.rows[0].userId
+				const message = `${data}`
 
 				// Отправляем сообщение пользователю
 				bot.sendMessage(chatId, message)
