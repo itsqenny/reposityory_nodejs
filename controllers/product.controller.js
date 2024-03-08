@@ -197,7 +197,7 @@ class ProductController {
 📍 ${userCity}
 ID: ${userId}.
 
-Zipper App снова ждет ваших заказов! ⚡`
+WORLDSTUFF снова ждет ваших заказов! ⚡`
 
 				const dataToSend = {
 					project_id: project_id,
@@ -335,7 +335,7 @@ Zipper App снова ждет ваших заказов! ⚡`
 				const params = `
       Поздравляем с покупкой!
 Теперь у вас 🧾 ${ProductName} навсегда
-Zipper App снова ждет ваших заказов! ⚡`
+WORLDSTUFF снова ждет ваших заказов! ⚡`
 
 				const dataToSend = {
 					project_id: project_id,

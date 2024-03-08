@@ -1,4 +1,8 @@
 const db = require("../DB/db")
+const TelegramBot = require("node-telegram-bot-api")
+const crypto = require("crypto")
+const bot = require("../Telegram/app")
+
 class BotController {
 	async createUser({ userId, first_name, last_name, username }) {
 		const existingUser = await db.query(
@@ -60,6 +64,66 @@ class BotController {
 			JSON.stringify(updatedReferrals),
 			referralCode.toString(),
 		])
+	}
+	async getChecker(req, res) {
+		// Ваш код для POST-запроса
+		const { id, apikey, order_id, project_id, amount, createDateTime, data } =
+			req.body
+		console.log(id, apikey, order_id, project_id, amount, createDateTime, data)
+		const sign = crypto
+			.createHash("sha256")
+			.update(`${id}:${order_id}:${project_id}:${apikey}`)
+			.digest("hex")
+
+		if (sign !== sign) {
+			return res.status(400).send("Неверная подпись")
+		}
+
+		if (
+			data !== undefined &&
+			id !== undefined &&
+			order_id !== undefined &&
+			createDateTime !== undefined &&
+			amount !== undefined
+		) {
+			// Платеж прошел успешно, проводите операции по обработке платежа
+			console.log("Оплачено", { id, order_id, amount, createDateTime, data })
+
+			// Отправляем статус только если все поля определены
+			res.send("OK")
+
+			// Находим пользователя с совпадающими данными в userOrder
+			const user = await db.query(
+				'SELECT * FROM "Users" WHERE "userOrder" LIKE $1',
+				[`%${order_id}%`]
+			)
+
+			if (user) {
+				//console.log(`chatId: ${JSON.stringify(user.rows[0].userId)}`)
+				const chatId = "5463868504"
+				const message = `Я слежу за тобой`
+
+				// Отправляем сообщение пользователю
+				bot.sendMessage(chatId, message)
+
+				let currentOrders = user.userOrder ? JSON.parse(user.userOrder) : []
+
+				// Обновляем статус заказов с соответствующим order_id
+				const updatedOrders = currentOrders.map((order) => {
+					if (order.order_id === order_id) {
+						return { ...order, status: "PAID" }
+					}
+					return order
+				})
+
+				// Обновляем запись в таблице Users
+				await db.query(
+					'UPDATE "Users" SET "userOrder" = $1 WHERE "userId" = $2',
+					[JSON.stringify(updatedOrders), user.userId]
+				)
+				console.log("Статус заказа успешно обновлен.")
+			}
+		}
 	}
 }
 
