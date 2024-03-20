@@ -1,6 +1,8 @@
 require("dotenv").config()
 const db = require("../DB/db")
 const axios = require("axios")
+const fetch = require("node-fetch")
+const { createHash } = require("crypto")
 
 class ProductController {
 	async getProducts(req, res) {
@@ -108,7 +110,59 @@ class ProductController {
 				.json({ error: "Внутренняя ошибка сервера", details: error.message })
 		}
 	}
+	async createPayment(req, res) {
+		const {
+			name,
+			price,
+			size,
+			userId,
+			order_id,
+			productId,
+			time,
+			remainingBonus,
+			saveBonus,
+			newBonus,
+		} = req.body
 
+		const apikey = process.env.TOKEN_P2P
+		const project_id = process.env.ID_P2P
+		const options = `Название товара: ${name}, 
+                      размер: ${size}`
+		const currency = "RUB"
+		const dataToSend = {
+			project_id: project_id,
+			order_id: order_id,
+			amount: price,
+			currency: currency,
+			data: JSON.stringify(options),
+		}
+		const jsonData = JSON.stringify(dataToSend)
+		const joinString = `${apikey}${order_id}${productId}${price}${currency}`
+		const authToken = createHash("sha512").update(joinString).digest("hex")
+		const url = "https://p2pkassa.online/api/v2/link"
+		const headers = {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${authToken}`,
+		}
+		console.log(headers)
+		async function createLink() {
+			try {
+				const response = await fetch(url, {
+					method: "POST",
+					body: jsonData,
+					headers: headers,
+				})
+				if (!response.ok) {
+					throw new Error(`Error HTTP: ${response.status}`)
+				}
+				const result = await response.json()
+				console.log(`Result: ${JSON.stringify(result)}`)
+			} catch (error) {
+				console.error("Error", error.message)
+			}
+		}
+		createLink()
+	}
 	async getPayment(req, res) {
 		const {
 			name,
@@ -138,22 +192,13 @@ class ProductController {
 		try {
 			const apikey = process.env.TOKEN_P2P
 			const project_id = process.env.ID_P2P
-			console.log(project_id, apikey)
+			const currency = "RUB"
 			const ProductName = name
 			const ProductSize = size
 			const saveUserBonus = saveBonus
 			const getUserBonus = newBonus
 			ProductOrder = order_id
 			const ProductPrice = price
-			console.log(ProductPrice)
-			console.log(ProductOrder)
-			console.log(ProductSize)
-			console.log(ProductName)
-			const config = {
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded",
-				},
-			}
 
 			// Поиск пользователя в базе данных
 			const user = await db.query('SELECT * FROM "Users" WHERE "userId" = $1', [
@@ -161,9 +206,9 @@ class ProductController {
 			])
 
 			if (user) {
-				const currentBonus = user.rows[0].userBonus || 0 // Default to 0 if userBonus is not set
+				const currentBonus = user.rows[0].userBonus || 0
 				const changeBonus = remainingBonus
-				const updatedBonus = parseInt(changeBonus, 10) // Assuming remainingBonus is a number
+				const updatedBonus = parseInt(changeBonus, 10)
 
 				if (getUserBonus === 0) {
 					const updateQuery =
@@ -177,44 +222,35 @@ class ProductController {
 				const phoneNumber = user.rows[0].phoneNumber || "Не указано"
 				const userCity = user.rows[0].userCity || "Не указано"
 				console.log(`DataPayemnt: ${JSON.stringify(user.rows[0])}`)
-				const desc = `Название товара: ${ProductName}, 
+				const options = `Название товара: ${ProductName}, 
                       размер: ${ProductSize}, 
                       ФИО: ${userFio}, 
                       Номер для связи ${phoneNumber}
                       Город: ${userCity},
                       Адрес доставки: ${userAdress}`
-				const params = `
-      Поздравляем с покупкой!
-      📋 Данные заказа:
-🧾 ${ProductName}, 
-🎟️ ${ProductOrder}, 
-📏 ${ProductSize}, 
-💎 ${ProductPrice}.
-      🚚 Детали доставки:
-👤 ${userFio},
-📱 ${phoneNumber},
-🏙️ ${userAdress},
-📍 ${userCity}
-ID: ${userId}.
-
-WORLDSTUFF снова ждет ваших заказов! ⚡`
 
 				const dataToSend = {
 					project_id: project_id,
-					order_id: ProductOrder, // Используйте order_id из req.body
+					order_id: ProductOrder,
 					amount: ProductPrice,
-					apikey: apikey,
-					desc: desc,
-					data: params,
+					currency: currency,
+					data: JSON.stringify(options),
 				}
-
-				const response = await axios.post(
-					"https://p2pkassa.online/api/v1/link",
-					dataToSend,
-					config
-				)
-				const result = response.data
-				console.log(result)
+				const jsonData = JSON.stringify(dataToSend)
+				const joinString = `${apikey}${ProductOrder}${productId}${ProductPrice}${currency}`
+				const authToken = createHash("sha512").update(joinString).digest("hex")
+				const url = "https://p2pkassa.online/api/v2/link"
+				const headers = {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${authToken}`,
+				}
+				const response = await fetch(url, {
+					method: "POST",
+					body: jsonData,
+					headers: headers,
+				})
+				const result = await response.json()
+				console.log(`result: ${JSON.stringify(result)}`)
 				if (result && result.link && result.id) {
 					// Создаем URL для второго запроса
 					const paymentUrl = result.link
@@ -231,14 +267,13 @@ WORLDSTUFF снова ждет ваших заказов! ⚡`
 					const getPayment = await axios.post(
 						"https://p2pkassa.online/api/v1/getPayment",
 						dataToPayment,
-						config
+						headers
 					)
 					const resGetPayment = getPayment.data
-					const resGetPaymentString = JSON.stringify(resGetPayment)
 
-					console.log(`resGetPayment : ${resGetPaymentString}`)
+					console.log(`resGetPayment : ${resGetPayment}`)
 
-					const match = resGetPaymentString.match(/\"status\":\"([^"]+)\"/)
+					const match = resGetPayment.match(/\"status\":\"([^"]+)\"/)
 					status = match ? match[1] : null
 
 					console.log("Статус оплаты:", status)
