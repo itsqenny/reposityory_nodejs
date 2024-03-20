@@ -145,23 +145,14 @@ class ProductController {
 			Authorization: `Bearer ${authToken}`,
 		}
 		console.log(headers)
-		async function createLink() {
-			try {
-				const response = await fetch(url, {
-					method: "POST",
-					body: jsonData,
-					headers: headers,
-				})
-				if (!response.ok) {
-					throw new Error(`Error HTTP: ${response.status}`)
-				}
-				const result = await response.json()
-				console.log(`Result: ${JSON.stringify(result)}`)
-			} catch (error) {
-				console.error("Error", error.message)
-			}
-		}
-		createLink()
+
+		const response = await fetch(url, {
+			method: "POST",
+			body: jsonData,
+			headers: headers,
+		})
+		const result = await response.json()
+		console.log(`result : ${JSON.stringify(result)}`)
 	}
 	async getPayment(req, res) {
 		const {
