@@ -129,22 +129,14 @@ class ProductController {
 		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}` // Собираем строку для генерации ключа
 		const authToken = createHash("sha512").update(joinString).digest("hex")
 		const headers = {
-			"Content-Type": "application/json",
+			"Content-Type": "application/x-www-form-urlencoded",
 			Authorization: "Bearer " + authToken,
 		}
 
 		const getPayment = await axios.post(
 			"https://p2pkassa.online/api/v2/link",
 			jsonData,
-			{
-				headers,
-				transformRequest: [
-					(data, headers) => {
-						delete headers.common["Content-Type"]
-						return JSON.stringify(data)
-					},
-				],
-			}
+			headers
 		)
 
 		const resGetPayment = getPayment.data
