@@ -123,7 +123,7 @@ class ProductController {
 			order_id: order_id,
 			amount: price,
 			currency: currency,
-			//data: JSON.stringify(options),
+			data: options,
 		}
 		const jsonData = JSON.stringify(dataToSend)
 		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}` // Собираем строку для генерации ключа
