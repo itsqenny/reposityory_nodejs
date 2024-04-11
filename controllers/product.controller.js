@@ -126,9 +126,7 @@ class ProductController {
 			//data: JSON.stringify(options),
 		}
 		const jsonData = JSON.stringify(dataToSend)
-		const joinString = `${apikey}${order_id}${project_id}${amount.toFixed(
-			2
-		)}${currency}` // Собираем строку для генерации ключа
+		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}` // Собираем строку для генерации ключа
 		const authToken = createHash("sha512").update(joinString).digest("hex")
 		const headers = {
 			"Content-Type": "application/json",
