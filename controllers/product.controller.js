@@ -111,23 +111,11 @@ class ProductController {
 		}
 	}
 	async createPayment(req, res) {
-		const {
-			name,
-			price,
-			size,
-			userId,
-			order_id,
-			productId,
-			time,
-			remainingBonus,
-			saveBonus,
-			newBonus,
-		} = req.body
+		const { name, price, size, order_id, productId } = req.body
 
 		const apikey = process.env.TOKEN_P2P
 		const project_id = process.env.ID_P2P
-		const options = `Название товара: ${name}, 
-                      размер: ${size}`
+		const options = `Название товара: ${name}, размер: ${size}`
 		const currency = "RUB"
 		const dataToSend = {
 			project_id: project_id,
@@ -137,22 +125,26 @@ class ProductController {
 			data: JSON.stringify(options),
 		}
 		const jsonData = JSON.stringify(dataToSend)
-		const joinString = `${apikey}${order_id}${productId}${price}${currency}`
+		const joinString = `${apikey}${order_id}${productId}${price.toFixed(
+			2
+		)}${currency}`
 		const authToken = createHash("sha512").update(joinString).digest("hex")
 		const url = "https://p2pkassa.online/api/v2/link"
 		const headers = {
 			"Content-Type": "application/json",
 			Authorization: `Bearer ${authToken}`,
 		}
-		console.log(headers)
 
-		const response = await fetch(url, {
-			method: "POST",
-			body: jsonData,
-			headers: headers,
-		})
-		const result = await response.json()
-		console.log(`result : ${JSON.stringify(result)}`)
+		axios
+			.post(url, jsonData, { headers: headers })
+			.then((response) => {
+				console.log(response.data)
+			})
+			.catch((error) => {
+				console.error(
+					`Ошибка HTTP: ${error.response.status}, Сообщение: ${error.response.data}`
+				)
+			})
 	}
 	async getPayment(req, res) {
 		const {
@@ -204,7 +196,7 @@ class ProductController {
 				if (getUserBonus === 0) {
 					const updateQuery =
 						'UPDATE "Users" SET "userBonus" = $1 WHERE "userId" = $2'
-					await db.query(updateQuery, [updatedBonus, userId]) // Сохраняем изменения в базе данных
+					await db.query(updateQuery, [updatedBonus, userId])
 				}
 				// Извлекаем данные пользователя
 				const userId = user.rows[0].userId
