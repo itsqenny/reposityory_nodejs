@@ -148,7 +148,7 @@ class ProductController {
 		const url = "https://p2pkassa.online/api/v2/link"
 		const headers = {
 			"Content-Type": "application/json",
-			Authorization: `Bearer ${authToken}`,
+			Authorization: "Bearer " + authToken,
 		}
 
 		axios
