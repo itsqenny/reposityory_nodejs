@@ -150,17 +150,19 @@ class ProductController {
 			"Content-Type": "application/json",
 			Authorization: "Bearer " + authToken,
 		}
-
-		axios
-			.post(url, jsonData, { headers: headers })
-			.then((response) => {
-				console.log(response.data) // Выводим результат
-			})
-			.catch((error) => {
-				console.error(
-					`Ошибка HTTP: ${error.response.status}, Сообщение: ${error.response.data}`
-				)
-			})
+		try {
+			const getPay = await axios.post(url, jsonData, { headers: headers })
+			const result = getPay.data
+			console.log(result)
+			const resultString = JSON.stringify(response)
+			console.log(resultString)
+		} catch (error) {
+			console.error(
+				`Ошибка HTTP: ${JSON.stringify(
+					error.response.status
+				)}, Сообщение: ${JSON.stringify(error.response.data)}`
+			)
+		}
 	}
 	async getPayment(req, res) {
 		const {
