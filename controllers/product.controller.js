@@ -1,7 +1,7 @@
 require("dotenv").config()
 const db = require("../DB/db")
 const axios = require("axios")
-const fetch = require("node-fetch")
+const crypto = require("crypto")
 const { createHash } = require("crypto")
 
 class ProductController {
@@ -116,35 +116,34 @@ class ProductController {
 		const apikey = process.env.TOKEN_P2P
 		const project_id = process.env.ID_P2P
 		const options = `Название товара: ${name}, размер: ${size}`
+		const amount = price
 		const currency = "RUB"
 		const dataToSend = {
 			project_id: project_id,
 			order_id: order_id,
 			amount: price,
 			currency: currency,
-			data: JSON.stringify(options),
+			//data: JSON.stringify(options),
 		}
 		const jsonData = JSON.stringify(dataToSend)
-		const joinString = `${apikey}${order_id}${productId}${price}${currency}`
+		const joinString = `${apikey}${order_id}${project_id}${amount.toFixed(
+			2
+		)}${currency}` // Собираем строку для генерации ключа
 		const authToken = createHash("sha512").update(joinString).digest("hex")
-		const url = "https://p2pkassa.online/api/v2/link"
 		const headers = {
 			"Content-Type": "application/json",
-			Authorization: `Bearer ${authToken}`,
+			Authorization: "Bearer " + authToken,
 		}
 
-		axios
-			.post(url, jsonData, { headers: headers })
-			.then((response) => {
-				console.log(response.data)
-			})
-			.catch((error) => {
-				console.error(
-					`Ошибка HTTP: ${JSON.stringify(
-						error.response.status
-					)}, Сообщение: ${JSON.stringify(error.response.data)}`
-				)
-			})
+		const getPayment = await axios.post(
+			"https://p2pkassa.online/api/v2/link",
+			jsonData,
+			headers
+		)
+
+		const resGetPayment = getPayment.data
+
+		console.log(`resGetPayment : ${resGetPayment}`)
 	}
 	async getPayment(req, res) {
 		const {
