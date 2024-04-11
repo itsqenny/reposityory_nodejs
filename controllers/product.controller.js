@@ -111,37 +111,56 @@ class ProductController {
 		}
 	}
 	async createPayment(req, res) {
-		const { name, price, size, order_id, productId } = req.body
+		//const { name, price, size, order_id, productId } = req.body
 
 		const apikey = process.env.TOKEN_P2P
 		const project_id = process.env.ID_P2P
-		const options = `Название товара: ${name}, размер: ${size}`
-		const amount = price
-		const currency = "RUB"
-		const dataToSend = {
+		const order_id =
+			Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 99999) // Ваш номер заказа
+		const amount = 100.0 // Сумма платежа
+		const currency = "RUB" // Валюта платежа
+		const success_url = "https://domain.com/success" // Редирект на страницу успеха
+		const failed_url = "https://domain.com/failed" // Редирект на страницу неуспеха
+
+		// Можно добавить данные, которые будут переданы вместе с уведомлением об успешном платеже
+		// const options = { name_1: 'value_1', name_2: 'value_2', name_3: 'value_3' };
+
+		const data = {
 			project_id: project_id,
 			order_id: order_id,
-			amount: price,
+			amount: amount,
 			currency: currency,
-			data: options,
+			// success_url: success_url, // Раскомментируйте, если необходимо
+			// failed_url: failed_url, // Раскомментируйте, если необходимо
+			// data: JSON.stringify(options) // Дополнительные данные
 		}
-		const jsonData = JSON.stringify(dataToSend)
-		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}` // Собираем строку для генерации ключа
-		const authToken = createHash("sha512").update(joinString).digest("hex")
+
+		const jsonData = JSON.stringify(data)
+
+		// Создаем аутентификационный ключ
+		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}`
+		const authToken = crypto
+			.createHash("sha512")
+			.update(joinString)
+			.digest("hex")
+
+		// Отправляем запрос
+		const url = "https://p2pkassa.online/api/v2/link"
 		const headers = {
 			"Content-Type": "application/json",
 			Authorization: `Bearer ${authToken}`,
 		}
 
-		const getPayment = await axios.post(
-			"https://p2pkassa.online/api/v2/link",
-			jsonData,
-			headers
-		)
-
-		const resGetPayment = getPayment.data
-
-		console.log(`resGetPayment : ${resGetPayment}`)
+		axios
+			.post(url, jsonData, { headers: headers })
+			.then((response) => {
+				console.log(response.data) // Выводим результат
+			})
+			.catch((error) => {
+				console.error(
+					`Ошибка HTTP: ${error.response.status}, Сообщение: ${error.response.data}`
+				)
+			})
 	}
 	async getPayment(req, res) {
 		const {
