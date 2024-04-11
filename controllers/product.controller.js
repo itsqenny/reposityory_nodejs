@@ -140,7 +140,9 @@ class ProductController {
 			})
 			.catch((error) => {
 				console.error(
-					`Ошибка HTTP: ${error.response.status}, Сообщение: ${error.response.data}`
+					`Ошибка HTTP: ${JSON.stringify(
+						error.response.status
+					)}, Сообщение: ${JSON.stringify(error.response.data)}`
 				)
 			})
 	}
