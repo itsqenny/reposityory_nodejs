@@ -125,9 +125,7 @@ class ProductController {
 			data: JSON.stringify(options),
 		}
 		const jsonData = JSON.stringify(dataToSend)
-		const joinString = `${apikey}${order_id}${productId}${price.toFixed(
-			2
-		)}${currency}`
+		const joinString = `${apikey}${order_id}${productId}${price}${currency}`
 		const authToken = createHash("sha512").update(joinString).digest("hex")
 		const url = "https://p2pkassa.online/api/v2/link"
 		const headers = {
