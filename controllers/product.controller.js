@@ -136,7 +136,15 @@ class ProductController {
 		const getPayment = await axios.post(
 			"https://p2pkassa.online/api/v2/link",
 			jsonData,
-			headers
+			{
+				headers,
+				transformRequest: [
+					(data, headers) => {
+						delete headers.common["Content-Type"]
+						return JSON.stringify(data)
+					},
+				],
+			}
 		)
 
 		const resGetPayment = getPayment.data
