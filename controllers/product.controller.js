@@ -129,8 +129,8 @@ class ProductController {
 		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}` // Собираем строку для генерации ключа
 		const authToken = createHash("sha512").update(joinString).digest("hex")
 		const headers = {
-			"Content-Type": "application/x-www-form-urlencoded",
-			Authorization: "Bearer " + authToken,
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${authToken}`,
 		}
 
 		const getPayment = await axios.post(
