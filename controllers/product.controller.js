@@ -3,8 +3,6 @@ const db = require("../DB/db")
 const axios = require("axios")
 const crypto = require("crypto")
 
-let apikey = process.env.TOKEN_P2P
-let project_id = process.env.ID_P2P
 class ProductController {
 	async getProducts(req, res) {
 		const products = await db.query('SELECT * FROM "Sneakers"')
@@ -113,7 +111,8 @@ class ProductController {
 	}
 	async createPayment(req, res) {
 		//const { name, price, size, order_id, productId } = req.body
-
+		const apikey = process.env.TOKEN_P2P
+		const project_id = process.env.ID_P2P
 		const order_id =
 			Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 99999) // Ваш номер заказа
 		const amount = 100.0 // Сумма платежа
