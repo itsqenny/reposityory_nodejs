@@ -2,7 +2,7 @@ require("dotenv").config()
 const db = require("../DB/db")
 const axios = require("axios")
 const crypto = require("crypto")
-const { createHash } = require("crypto")
+
 let apikey = process.env.TOKEN_P2P
 let project_id = process.env.ID_P2P
 class ProductController {
