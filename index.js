@@ -30,7 +30,7 @@ app.post("/getLinks", async (req, res) => {
 	const jsonData = JSON.stringify(data)
 	const joinString = `${apikey}${order_id}${project_id}${amount}${currency}`
 
-	const hash = createHash("sha512").update(joinString).digest("hex")
+	const hash = crypto.createHash("sha512").update(joinString).digest("hex")
 
 	const options = {
 		method: "POST",
