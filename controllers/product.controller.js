@@ -150,7 +150,9 @@ class ProductController {
 		}
 		console.log("header " + headers)
 		try {
-			const getPay = await axios.post(url, jsonData, { headers: headers })
+			const getPay = await axios.post(url, jsonData, {
+				headers: JSON.stringify(headers),
+			})
 			console.log("getPay " + getPay)
 			const result = getPay.data
 			console.log(result)
