@@ -1,7 +1,8 @@
 require("dotenv").config()
 const db = require("../DB/db")
 const axios = require("axios")
-const { crypto } = require("crypto")
+const crypto = require("crypto")
+const { createHash } = crypto
 
 class ProductController {
 	async getProducts(req, res) {
