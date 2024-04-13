@@ -1,8 +1,6 @@
 require("dotenv").config()
 const db = require("../DB/db")
 const axios = require("axios")
-const crypto = require("crypto")
-const { createHash } = crypto
 
 class ProductController {
 	async getProducts(req, res) {
@@ -129,8 +127,11 @@ class ProductController {
 
 		// Создаем аутентификационный ключ
 		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}`
-		console.log(`${joinString} i eshe ${JSON.stringify(joinString)}`)
-		const hash = crypto.createHmac("sha512").update(joinString).digest("hex")
+
+		const hash = require("crypto")
+			.createHash("sha512")
+			.update(joinString)
+			.digest("hex")
 		console.log("hash " + hash)
 		// Отправляем запрос
 		const url = "https://p2pkassa.online/api/v2/link"
