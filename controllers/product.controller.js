@@ -129,7 +129,10 @@ class ProductController {
 
 		// Создаем аутентификационный ключ
 		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}`
-		const hash = crypto.createHash("sha512").update(joinString).digest("hex")
+		const hash = crypto
+			.createHash("sha512")
+			.update(JSON.stringify(joinString))
+			.digest("hex")
 		console.log("hash " + hash)
 		// Отправляем запрос
 		const url = "https://p2pkassa.online/api/v2/link"
