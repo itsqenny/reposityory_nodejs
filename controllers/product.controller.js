@@ -108,7 +108,7 @@ class ProductController {
 				.json({ error: "Внутренняя ошибка сервера", details: error.message })
 		}
 	}
-	async createPayment(req, res) {
+	createPayment(req, res) {
 		//const { name, price, size, order_id, productId } = req.body
 		const apikey = process.env.TOKEN_P2P
 		const project_id = process.env.ID_P2P
@@ -138,7 +138,7 @@ class ProductController {
 		}
 
 		try {
-			const response = await axios(options)
+			const response = axios(options)
 			console.log(response.data)
 		} catch (error) {
 			console.error(
