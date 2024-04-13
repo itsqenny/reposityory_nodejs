@@ -137,7 +137,7 @@ class ProductController {
 			Authorization: `Bearer ${hash}`,
 		}
 
-		console.log("header " + headers)
+		console.log("header " + JSON.stringify(headers))
 		try {
 			const getPay = await axios.post(url, jsonData, {
 				headers: headers,
