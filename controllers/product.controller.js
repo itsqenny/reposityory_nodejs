@@ -1,7 +1,7 @@
 require("dotenv").config()
 const db = require("../DB/db")
 const axios = require("axios")
-
+const { createHash } = require("crypto")
 class ProductController {
 	async getProducts(req, res) {
 		const products = await db.query('SELECT * FROM "Sneakers"')
@@ -113,43 +113,33 @@ class ProductController {
 		const apikey = process.env.TOKEN_P2P
 		const project_id = process.env.ID_P2P
 		const order_id =
-			Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 99999) // Ваш номер заказа
-		const amount = 100.0 // Сумма платежа
-		const currency = "RUB" // Валюта платежа
+			Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 99999)
+		const amount = 100.0
+		const currency = "RUB"
 		const data = {
 			project_id: project_id,
 			order_id: order_id,
 			amount: amount,
 			currency: currency,
 		}
-
 		const jsonData = JSON.stringify(data)
-
-		// Создаем аутентификационный ключ
 		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}`
 
-		const hash = require("crypto")
-			.createHash("sha512")
-			.update(joinString)
-			.digest("hex")
-		console.log("hash " + hash)
-		// Отправляем запрос
-		const url = "https://p2pkassa.online/api/v2/link"
-		const headers = {
-			"Content-Type": "application/json",
-			Authorization: `bearer ${hash}`,
+		const hash = createHash("sha512").update(joinString).digest("hex")
+
+		const options = {
+			method: "POST",
+			url: "https://p2pkassa.online/api/v2/link",
+			headers: {
+				"content-type": "application/json",
+				Authorization: ` Bearer ${hash}`,
+			},
+			data: jsonData,
 		}
 
-		console.log("header " + JSON.stringify(headers))
 		try {
-			const getPay = await axios.post(url, jsonData, {
-				headers: headers,
-			})
-			console.log("getPay " + getPay)
-			const result = getPay.data
-			console.log(result)
-			const resultString = JSON.stringify(response)
-			console.log(resultString)
+			const response = await axios(options)
+			console.log(response.data)
 		} catch (error) {
 			console.error(
 				`Ошибка HTTP: ${JSON.stringify(
