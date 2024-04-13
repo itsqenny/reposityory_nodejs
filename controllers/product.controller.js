@@ -117,41 +117,30 @@ class ProductController {
 			Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 99999) // Ваш номер заказа
 		const amount = 100.0 // Сумма платежа
 		const currency = "RUB" // Валюта платежа
-		const success_url = "https://domain.com/success" // Редирект на страницу успеха
-		const failed_url = "https://domain.com/failed" // Редирект на страницу неуспеха
-
-		// Можно добавить данные, которые будут переданы вместе с уведомлением об успешном платеже
-		// const options = { name_1: 'value_1', name_2: 'value_2', name_3: 'value_3' };
-
 		const data = {
 			project_id: project_id,
 			order_id: order_id,
 			amount: amount,
 			currency: currency,
-			// success_url: success_url, // Раскомментируйте, если необходимо
-			// failed_url: failed_url, // Раскомментируйте, если необходимо
-			// data: JSON.stringify(options) // Дополнительные данные
 		}
 
 		const jsonData = JSON.stringify(data)
 
 		// Создаем аутентификационный ключ
 		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}`
-		const authToken = crypto
-			.createHash("sha512")
-			.update(joinString)
-			.digest("hex")
-
+		const hash = crypto.createHash("sha512").update(joinString).digest("hex")
+		console.log("hash " + hash)
 		// Отправляем запрос
 		const url = "https://p2pkassa.online/api/v2/link"
 		const headers = {
 			"Content-Type": "application/json",
-			Authorization: "Bearer " + authToken,
+			Authorization: `Bearer ${hash}`,
 		}
+
 		console.log("header " + headers)
 		try {
 			const getPay = await axios.post(url, jsonData, {
-				headers: JSON.stringify(headers),
+				headers: headers,
 			})
 			console.log("getPay " + getPay)
 			const result = getPay.data
