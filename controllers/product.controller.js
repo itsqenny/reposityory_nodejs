@@ -108,7 +108,7 @@ class ProductController {
 				.json({ error: "Внутренняя ошибка сервера", details: error.message })
 		}
 	}
-	createPayment(req, res) {
+	async createPayment(req, res) {
 		//const { name, price, size, order_id, productId } = req.body
 		const apikey = process.env.TOKEN_P2P
 		const project_id = process.env.ID_P2P
@@ -131,14 +131,14 @@ class ProductController {
 			method: "POST",
 			url: "https://p2pkassa.online/api/v2/link",
 			headers: {
-				"content-type": "application/json",
-				Authorization: ` Bearer ${hash}`,
+				"Content-Type": "application/json",
+				Authorization: "Bearer " + hash,
 			},
 			data: jsonData,
 		}
 
 		try {
-			const response = axios(options)
+			const response = await axios(options)
 			console.log(response.data)
 		} catch (error) {
 			console.error(
