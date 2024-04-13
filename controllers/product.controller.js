@@ -128,18 +128,15 @@ class ProductController {
 		const jsonData = JSON.stringify(data)
 
 		// Создаем аутентификационный ключ
-		const joinString = `${apikey} ${order_id} ${project_id} ${amount} ${currency}`
+		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}`
 		console.log(`${joinString} i eshe ${JSON.stringify(joinString)}`)
-		const hash = crypto
-			.createHash("sha512")
-			.update(JSON.stringify(joinString))
-			.digest("hex")
+		const hash = crypto.createHmac("sha512").update(joinString).digest("hex")
 		console.log("hash " + hash)
 		// Отправляем запрос
 		const url = "https://p2pkassa.online/api/v2/link"
 		const headers = {
 			"Content-Type": "application/json",
-			Authorization: `Bearer ${hash}`,
+			Authorization: `bearer ${hash}`,
 		}
 
 		console.log("header " + JSON.stringify(headers))
