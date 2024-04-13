@@ -128,7 +128,7 @@ class ProductController {
 		const jsonData = JSON.stringify(data)
 
 		// Создаем аутентификационный ключ
-		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}`
+		const joinString = `${apikey} ${order_id} ${project_id} ${amount} ${currency}`
 		console.log(`${joinString} i eshe ${JSON.stringify(joinString)}`)
 		const hash = crypto
 			.createHash("sha512")
