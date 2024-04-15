@@ -1,7 +1,7 @@
 require("dotenv").config()
 const db = require("../DB/db")
 const axios = require("axios")
-const { createHash } = require("crypto")
+const crypto = require("crypto")
 class ProductController {
 	async getProducts(req, res) {
 		const products = await db.query('SELECT * FROM "Sneakers"')
@@ -118,6 +118,7 @@ class ProductController {
 		const currency = "RUB"
 		const data = {
 			project_id: project_id,
+			apikey: apikey,
 			order_id: order_id,
 			amount: amount,
 			currency: currency,
@@ -125,17 +126,18 @@ class ProductController {
 		const jsonData = JSON.stringify(data)
 		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}`
 
-		const hash = createHash("sha512").update(joinString).digest("hex")
+		const hash = crypto.createHash("sha512").update(joinString).digest("hex")
 
 		const options = {
 			method: "POST",
 			url: "https://p2pkassa.online/api/v2/link",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: "Bearer " + hash,
+				Authorization: `Bearer ${hash}`,
 			},
 			data: jsonData,
 		}
+		console.log(options)
 
 		try {
 			const response = await axios(options)
