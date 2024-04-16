@@ -109,48 +109,6 @@ class ProductController {
 		}
 	}
 	async createPayment(req, res) {
-		//const { name, price, size, order_id, productId } = req.body
-		const apikey = process.env.TOKEN_P2P
-		const project_id = process.env.ID_P2P
-		const order_id =
-			Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 99999)
-		const amount = 100.0
-		const currency = "RUB"
-		const data = {
-			project_id: project_id,
-			apikey: apikey,
-			order_id: order_id,
-			amount: amount,
-			currency: currency,
-		}
-		const jsonData = JSON.stringify(data)
-		const joinString = `${apikey}${order_id}${project_id}${amount}${currency}`
-
-		const hash = crypto.createHash("sha512").update(joinString).digest("hex")
-
-		const options = {
-			method: "POST",
-			url: "https://p2pkassa.online/api/v2/link",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${hash}`,
-			},
-			data: jsonData,
-		}
-		console.log(options)
-
-		try {
-			const response = await axios(options)
-			console.log(response.data)
-		} catch (error) {
-			console.error(
-				`Ошибка HTTP: ${JSON.stringify(
-					error.response.status
-				)}, Сообщение: ${JSON.stringify(error.response.data)}`
-			)
-		}
-	}
-	async getPayment(req, res) {
 		const {
 			name,
 			price,
@@ -163,35 +121,27 @@ class ProductController {
 			saveBonus,
 			newBonus,
 		} = req.body
-
+		// Данные держателя кассы
+		const apikey = process.env.TOKEN_P2P
+		const project_id = process.env.ID_P2P
+		const currency = "RUB"
 		let status = []
 		let paymentId = []
 		let ProductOrder = []
-
+		const getUserBonus = newBonus
+		const saveUserBonus = saveBonus
 		const allowedUserId = userId
 		if (userId !== allowedUserId) {
 			return res.status(403).json({
 				error: "Доступ запрещен",
-				message: "Вы не имеете разрешения на выполнение этой операции.",
+				message: "Вы не авторизованы",
 			})
 		}
 
 		try {
-			const apikey = process.env.TOKEN_P2P
-			const project_id = process.env.ID_P2P
-			const currency = "RUB"
-			const ProductName = name
-			const ProductSize = size
-			const saveUserBonus = saveBonus
-			const getUserBonus = newBonus
-			ProductOrder = order_id
-			const ProductPrice = price
-
-			// Поиск пользователя в базе данных
 			const user = await db.query('SELECT * FROM "Users" WHERE "userId" = $1', [
 				userId,
 			])
-
 			if (user) {
 				const currentBonus = user.rows[0].userBonus || 0
 				const changeBonus = remainingBonus
@@ -208,242 +158,119 @@ class ProductController {
 				const userAdress = user.rows[0].userAdress || "Не указано"
 				const phoneNumber = user.rows[0].phoneNumber || "Не указано"
 				const userCity = user.rows[0].userCity || "Не указано"
-				console.log(`DataPayemnt: ${JSON.stringify(user.rows[0])}`)
-				const options = `Название товара: ${ProductName}, 
-                      размер: ${ProductSize}, 
-                      ФИО: ${userFio}, 
-                      Номер для связи ${phoneNumber}
-                      Город: ${userCity},
-                      Адрес доставки: ${userAdress}`
-
-				const dataToSend = {
+				//console.log(userFio, userAdress, phoneNumber, userCity)
+				const data = {
 					project_id: project_id,
-					order_id: ProductOrder,
-					amount: ProductPrice,
-					currency: currency,
-					data: JSON.stringify(options),
-				}
-				const jsonData = JSON.stringify(dataToSend)
-				const joinString = `${apikey}${ProductOrder}${productId}${ProductPrice}${currency}`
-				const authToken = createHash("sha512").update(joinString).digest("hex")
-				const url = "https://p2pkassa.online/api/v2/link"
-				const headers = {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${authToken}`,
-				}
-				const response = await fetch(url, {
-					method: "POST",
-					body: jsonData,
-					headers: headers,
-				})
-				const result = await response.json()
-				console.log(`result: ${JSON.stringify(result)}`)
-				if (result && result.link && result.id) {
-					// Создаем URL для второго запроса
-					const paymentUrl = result.link
-					paymentId = result.id
-					console.log(paymentUrl)
-					console.log(paymentId)
-					// Отправляем второй POST-запрос
-
-					const dataToPayment = {
-						id: paymentId,
-						project_id: project_id,
-						apikey: apikey,
-					}
-					const getPayment = await axios.post(
-						"https://p2pkassa.online/api/v1/getPayment",
-						dataToPayment,
-						headers
-					)
-					const resGetPayment = getPayment.data
-
-					console.log(`resGetPayment : ${resGetPayment}`)
-
-					const match = resGetPayment.match(/\"status\":\"([^"]+)\"/)
-					status = match ? match[1] : null
-
-					console.log("Статус оплаты:", status)
-					const userOrderString = user.rows[0].userOrder
-					console.log("userOrderString:", userOrderString)
-
-					let currentOrders = userOrderString ? JSON.parse(userOrderString) : []
-					// Добавьте новый заказ к существующему значению
-					const newOrder = {
-						id: productId,
-						name: name,
-						order_id: order_id,
-						price: price,
-						size: size,
-						status: status,
-						time: time,
-						saveBonus: saveUserBonus,
-						newBonus: getUserBonus,
-					}
-
-					const updatedOrders = currentOrders.concat(newOrder)
-					console.log("currentOrders before update:", currentOrders)
-					// Обновляем запись в таблице Users
-					await db.query(
-						'UPDATE "Users" SET "userOrder" = $1 WHERE "userId" = $2',
-						[JSON.stringify(updatedOrders), userId]
-					)
-
-					console.log("Заказ успешно добавлен.")
-
-					// Создаем URL для второго запроса
-					// Отправляем второй POST-запрос
-					return res.json({ paymentUrl })
-				} else {
-					console.log("Отсутствуют данные id и link в ответе")
-				}
-			} else {
-				// Если пользователь не найден, обработка ошибки или возврат 404
-				return res
-					.status(400)
-					.json({ error: "Ошибка", message: "Пользователь не найден." })
-			}
-		} catch (error) {
-			// Обработка ошибки
-			console.error(error)
-			return res
-				.status(500)
-				.json({ error: "Ошибка", message: "Внутренняя ошибка сервера." })
-		}
-	}
-	async getPaymentSubscription(req, res) {
-		const { name, price, userId, order_id, productId, time } = req.body
-		console.log(name, price, userId, order_id, productId, time)
-		let status = []
-		let paymentId = []
-		let ProductOrder = []
-
-		const allowedUserId = userId
-		if (userId !== allowedUserId) {
-			return res.status(403).json({
-				error: "Доступ запрещен",
-				message: "Вы не имеете разрешения на выполнение этой операции.",
-			})
-		}
-
-		try {
-			const apikey = process.env.TOKEN_P2P
-			const project_id = process.env.ID_P2P
-			const ProductName = name
-			ProductOrder = order_id
-			const ProductPrice = price
-			console.log(ProductPrice)
-			console.log(ProductOrder)
-			console.log(ProductName)
-			const config = {
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded",
-				},
-			}
-			const user = await db.query('SELECT * FROM "Users" WHERE "userId" = $1', [
-				userId,
-			])
-
-			if (user) {
-				const userId = user.rows[0].userId
-				const userFio = user.rows[0].userFio || "Не указано"
-				const userAdress = user.rows[0].userAdress || "Не указано"
-				const phoneNumber = user.rows[0].phoneNumber || "Не указано"
-				const userCity = user.rows[0].userCity || "Не указано"
-				console.log(`DataPayemnt: ${JSON.stringify(user.rows[0])}`)
-				const desc = `Вид подписки: ${ProductName}, 
-                      ФИО: ${userFio}, 
-                      Номер для связи ${phoneNumber}`
-				const params = `
-      Поздравляем с покупкой!
-Теперь у вас 🧾 ${ProductName} навсегда
-WORLDSTUFF снова ждет ваших заказов! ⚡`
-
-				const dataToSend = {
-					project_id: project_id,
-					order_id: ProductOrder, // Используйте order_id из req.body
-					amount: ProductPrice,
 					apikey: apikey,
-					desc: desc,
-					data: params,
+					order_id: order_id,
+					amount: price,
+					currency: currency,
 				}
+				const jsonData = JSON.stringify(data)
+				const joinString = `${apikey}${order_id}${project_id}${price}${currency}`
 
-				const response = await axios.post(
-					"https://p2pkassa.online/api/v1/link",
-					dataToSend,
-					config
-				)
-				const result = response.data
-				console.log(result)
-				if (result && result.link && result.id) {
-					// Создаем URL для второго запроса
-					const paymentUrl = result.link
-					paymentId = result.id
-					console.log(paymentUrl)
-					console.log(paymentId)
-					// Отправляем второй POST-запрос
+				const hash = crypto
+					.createHash("sha512")
+					.update(joinString)
+					.digest("hex")
 
-					const dataToPayment = {
-						id: paymentId,
-						project_id: project_id,
-						apikey: apikey,
-					}
-					const getPayment = await axios.post(
-						"https://p2pkassa.online/api/v1/getPayment",
-						dataToPayment,
-						config
-					)
-					const resGetPayment = getPayment.data
-					const resGetPaymentString = JSON.stringify(resGetPayment)
-
-					console.log(`resGetPayment : ${resGetPaymentString}`)
-
-					const match = resGetPaymentString.match(/\"status\":\"([^"]+)\"/)
-					status = match ? match[1] : null
-
-					console.log("Статус оплаты:", status)
-					const userOrderString = user.rows[0].userSplit
-					console.log("userOrderString:", userOrderString)
-
-					let currentOrders = userOrderString ? JSON.parse(userOrderString) : []
-					// Добавьте новый заказ к существующему значению
-					const newOrder = {
-						id: productId,
-						name: name,
-						order_id: order_id,
-						price: price,
-						status: status,
-						time: time,
-					}
-
-					const updatedOrders = currentOrders.concat(newOrder)
-					console.log("currentOrders before update:", currentOrders)
-					// Обновляем запись в таблице Users
-					await db.query(
-						'UPDATE "Users" SET "userSplit" = $1 WHERE "userId" = $2',
-						[JSON.stringify(updatedOrders), userId]
-					)
-
-					console.log("Заказ успешно добавлен.")
-
-					// Создаем URL для второго запроса
-					// Отправляем второй POST-запрос
-					return res.json({ paymentUrl })
-				} else {
-					console.log("Отсутствуют данные id и link в ответе")
+				const options = {
+					method: "POST",
+					url: "https://p2pkassa.online/api/v2/link",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${hash}`,
+					},
+					data: jsonData,
 				}
-			} else {
-				// Если пользователь не найден, обработка ошибки или возврат 404
-				return res
-					.status(400)
-					.json({ error: "Ошибка", message: "Пользователь не найден." })
+				//console.log(options)
+
+				try {
+					const response = await axios(options)
+					console.log(`response link: ${response.data.link}`)
+					console.log(`response id: ${response.data.id}`)
+					if (response && response.data.link && response.data.id) {
+						const paymentUrl = response.data.link
+						paymentId = response.data.id
+
+						const dataUpdate = {
+							id: paymentId,
+							order_id: order_id,
+							project_id: project_id,
+						}
+
+						const jsonDataUpdate = JSON.stringify(dataUpdate)
+						//console.log(jsonDataUpdate)
+						const joinStringUpdate = `${apikey}${paymentId}${order_id}${project_id}`
+						//console.log(joinStringUpdate)
+						const hashUpdate = crypto
+							.createHash("sha512")
+							.update(joinStringUpdate)
+							.digest("hex")
+
+						const optionsUpdate = {
+							method: "POST",
+							url: "https://p2pkassa.online/api/v2/getPayment",
+							headers: {
+								"Content-Type": "application/json",
+								Authorization: `Bearer ${hashUpdate}`,
+							},
+							data: jsonDataUpdate,
+						}
+						//console.log(JSON.stringify(optionsUpdate))
+						try {
+							const responseUpdate = await axios(optionsUpdate)
+
+							//console.log(`response: ${JSON.stringify(responseUpdate.data)}`)
+
+							status = responseUpdate.data.status
+							console.log("Статус оплаты:", status)
+							const userOrderString = user.rows[0].userOrder
+							console.log(`order: ${userOrderString}`)
+							let currentOrders = userOrderString
+								? JSON.parse(userOrderString)
+								: []
+							console.log(`currentOrders: ${currentOrders}`)
+							const newOrder = {
+								id: productId,
+								name: name,
+								order_id: order_id,
+								price: price,
+								size: size,
+								status: status,
+								time: time,
+								saveBonus: saveUserBonus,
+								newBonus: getUserBonus,
+							}
+							console.log(`newOrder : ${newOrder}`)
+							const updatedOrders = currentOrders.concat(newOrder)
+							console.log("currentOrders before update:", updatedOrders)
+
+							await db.query(
+								'UPDATE "Users" SET "userOrder" = $1 WHERE "userId" = $2',
+								[JSON.stringify(updatedOrders), userId]
+							)
+
+							console.log("Заказ успешно добавлен.")
+
+							console.log(`paymentUrl: ${paymentUrl}`)
+							return res.json({ paymentUrl })
+						} catch (error) {
+							console.error(`Отстутствует ссылка в оплате`)
+						}
+					} else {
+						console.log(`Не авторизован`)
+					}
+				} catch (error) {
+					console.error(
+						`Ошибка HTTP: ${JSON.stringify(
+							error.response.status
+						)}, Сообщение: ${JSON.stringify(error.response.data)}`
+					)
+				}
 			}
-		} catch (error) {
-			// Обработка ошибки
-			console.error(error)
-			return res
-				.status(500)
-				.json({ error: "Ошибка", message: "Внутренняя ошибка сервера." })
+		} catch (e) {
+			console.error(`Ошибка авторизации`)
 		}
 	}
 }

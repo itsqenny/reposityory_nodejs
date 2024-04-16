@@ -1,3 +1,4 @@
+require("dotenv").config()
 const db = require("../DB/db")
 const TelegramBot = require("node-telegram-bot-api")
 const crypto = require("crypto")
@@ -18,7 +19,7 @@ class BotController {
 
 			if (!existingUser.rows[0].startBonus) {
 				const updateBonus = await db.query(
-					'UPDATE "Users" SET "userBonus" = 500, "startBonus" = true WHERE "userId" = $1 RETURNING *',
+					'UPDATE "Users" SET "userBonus" = 1000, "startBonus" = true WHERE "userId" = $1 RETURNING *',
 					[userId]
 				)
 
@@ -67,15 +68,16 @@ class BotController {
 	}
 	async getChecker(req, res) {
 		// Ваш код для POST-запроса
-		const { id, apikey, order_id, project_id, amount, createDateTime, data } =
-			req.body
-		console.log(id, apikey, order_id, project_id, amount, createDateTime, data)
-		const sign = crypto
-			.createHash("sha256")
-			.update(`${id}:${order_id}:${project_id}:${apikey}`)
-			.digest("hex")
+		const inData = req.body
+		console.log(JSON.stringify(inData))
+		const apikey = process.env.TOKEN_P2P
+		const project_id = process.env.ID_P2P
+		const joinString = `${apikey}${inData.id}${
+			inData.order_id
+		}${project_id}${inData.amount.toFixed(2)}${inData.currency}`
+		const sign = crypto.createHash("sha256").update(joinString).digest("hex")
 
-		if (sign !== sign) {
+		if (sign !== inData.sign) {
 			return res.status(400).send("Неверная подпись")
 		}
 
@@ -87,7 +89,7 @@ class BotController {
 			amount !== undefined
 		) {
 			// Платеж прошел успешно, проводите операции по обработке платежа
-			console.log("Оплачено", { id, order_id, amount, createDateTime, data })
+			console.log("Оплачено")
 
 			// Отправляем статус только если все поля определены
 			res.send("OK")
@@ -95,7 +97,7 @@ class BotController {
 			// Находим пользователя с совпадающими данными в userOrder
 			const user = await db.query(
 				'SELECT * FROM "Users" WHERE "userOrder" LIKE $1',
-				[`%${order_id}%`]
+				[`%${inData.order_id}%`]
 			)
 
 			if (user) {
