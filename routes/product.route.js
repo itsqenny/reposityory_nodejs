@@ -1,6 +1,5 @@
 const Router = require("express")
 const router = new Router()
-const logicController = require("../controllers/logic.controller")
 const productController = require("../controllers/product.controller")
 
 router.get("/products/", productController.getProducts)
