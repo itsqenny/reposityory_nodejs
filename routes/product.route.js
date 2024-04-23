@@ -6,5 +6,5 @@ router.get("/products/", productController.getProducts)
 router.get("/products/:id", productController.getProduct)
 router.get("/product", productController.getProductsLimit)
 router.get("/filter", productController.getFilter)
-router.post("/create", productController.createPayment)
+router.post("/create", productController.createRequisites)
 module.exports = router
