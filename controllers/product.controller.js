@@ -115,12 +115,13 @@ class ProductController {
 		const amount = "1000"
 		const nonce = Math.floor(Date.now() / 1000)
 		const paymentId = "85231232"
-		const i = "6"
+		const i = "4"
 
 		const data = {
 			shopId: shopId,
 			apiKey: apiKey,
 			paymentId: paymentId,
+			nonce: nonce,
 			i: i,
 			amount: amount,
 			currency: currency,
@@ -145,7 +146,7 @@ class ProductController {
 
 		try {
 			const response = await axios.post(
-				"https://api.freekassa.ru/v1/",
+				"https://api.freekassa.ru/v1/withdrawals/create",
 				requestData
 			)
 			res.json(response.data)
