@@ -29,6 +29,7 @@ class ProductController {
 
 		res.json(product.rows[0])
 	}
+
 	async getProductsLimit(req, res) {
 		try {
 			const { page = 1, limit = 50 } = req.query
@@ -36,6 +37,22 @@ class ProductController {
 
 			const result = await db.query(
 				'SELECT * FROM "Sneakers" LIMIT $1 OFFSET $2',
+				[limit, offset]
+			)
+
+			res.json(result.rows)
+		} catch (error) {
+			console.error("Error fetching products:", error)
+			res.status(500).json({ error: "Internal Server Error" })
+		}
+	}
+	async getProductsLimitV1(req, res) {
+		try {
+			const { page = 1, limit = 50 } = req.query
+			const offset = (page - 1) * limit
+
+			const result = await db.query(
+				'SELECT * FROM "Shoes" LIMIT $1 OFFSET $2',
 				[limit, offset]
 			)
 
