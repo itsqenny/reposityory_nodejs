@@ -24,7 +24,7 @@ class ProductController {
 		const { id } = req.params
 
 		const product = await db.query(
-			'SELECT * FROM "ShoesId" WHERE "spuId" = $1',
+			'SELECT * FROM "ShoesIds" WHERE "spuId" = $1',
 			[id]
 		)
 
