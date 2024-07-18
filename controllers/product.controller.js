@@ -14,7 +14,7 @@ class ProductController {
 	async getProductV1(req, res) {
 		const { id } = req.params
 
-		const product = await db.query('SELECT * FROM "Shoes" WHERE spuId = $1', [
+		const product = await db.query('SELECT * FROM "Shoes" WHERE "spuId" = $1', [
 			id,
 		])
 
