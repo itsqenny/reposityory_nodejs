@@ -7,10 +7,14 @@ class ProductController {
 		const products = await db.query('SELECT * FROM "Sneakers"')
 		res.json(products.rows)
 	}
-	async getProduct(req, res) {
+	async getProductsV1(req, res) {
+		const products = await db.query('SELECT * FROM "Shoes"')
+		res.json(products.rows)
+	}
+	async getProductV1(req, res) {
 		const { id } = req.params
 
-		const product = await db.query('SELECT * FROM "Sneakers" WHERE id = $1', [
+		const product = await db.query('SELECT * FROM "Shoes" WHERE spuId = $1', [
 			id,
 		])
 
@@ -108,51 +112,169 @@ class ProductController {
 				.json({ error: "Внутренняя ошибка сервера", details: error.message })
 		}
 	}
-	async createRequisites(req, res) {
-		const shopId = process.env.ID_FREEKASSA
-		const apiKey = process.env.TOKEN_FREEKASSA
+	async createPayment(req, res) {
+		const {
+			name,
+			price,
+			size,
+			userId,
+			order_id,
+			productId,
+			time,
+			remainingBonus,
+			saveBonus,
+			newBonus,
+		} = req.body
+		// Данные держателя кассы
+		const apikey = process.env.TOKEN_P2P
+		const project_id = process.env.ID_P2P
 		const currency = "RUB"
-		const amount = "1000"
-		const nonce = Math.floor(Date.now() / 1000)
-		const paymentId = "85231232"
-		const i = "4"
-
-		const data = {
-			shopId: shopId,
-			apiKey: apiKey,
-			paymentId: paymentId,
-			nonce: nonce,
-			i: i,
-			amount: amount,
-			currency: currency,
-		}
-
-		const body = Object.keys(data)
-			.sort()
-			.reduce((acc, key) => {
-				acc[key] = data[key]
-				return acc
-			}, {})
-
-		const signature = crypto
-			.createHmac("sha256", apiKey)
-			.update(Object.values(body).join("|"))
-			.digest("hex")
-
-		const requestData = {
-			...body,
-			signature,
+		let status = []
+		let paymentId = []
+		let ProductOrder = []
+		const getUserBonus = newBonus
+		const saveUserBonus = saveBonus
+		const allowedUserId = userId
+		if (userId !== allowedUserId) {
+			return res.status(403).json({
+				error: "Доступ запрещен",
+				message: "Вы не авторизованы",
+			})
 		}
 
 		try {
-			const response = await axios.post(
-				"https://api.freekassa.ru/v1/withdrawals/create",
-				requestData
-			)
-			res.json(response.data)
-		} catch (error) {
-			console.error(error)
-			res.status(500).json({ error: "Internal Server Error" })
+			const user = await db.query('SELECT * FROM "Users" WHERE "userId" = $1', [
+				userId,
+			])
+			if (user) {
+				const currentBonus = user.rows[0].userBonus || 0
+				const changeBonus = remainingBonus
+				const updatedBonus = parseInt(changeBonus, 10)
+
+				if (getUserBonus === 0) {
+					const updateQuery =
+						'UPDATE "Users" SET "userBonus" = $1 WHERE "userId" = $2'
+					await db.query(updateQuery, [updatedBonus, userId])
+				}
+				// Извлекаем данные пользователя
+				const userId = user.rows[0].userId
+				const userFio = user.rows[0].userFio || "Не указано"
+				const userAdress = user.rows[0].userAdress || "Не указано"
+				const phoneNumber = user.rows[0].phoneNumber || "Не указано"
+				const userCity = user.rows[0].userCity || "Не указано"
+				//console.log(userFio, userAdress, phoneNumber, userCity)
+				const data = {
+					project_id: project_id,
+					apikey: apikey,
+					order_id: order_id,
+					amount: price,
+					currency: currency,
+				}
+				const jsonData = JSON.stringify(data)
+				const joinString = `${apikey}${order_id}${project_id}${price}${currency}`
+
+				const hash = crypto
+					.createHash("sha512")
+					.update(joinString)
+					.digest("hex")
+
+				const options = {
+					method: "POST",
+					url: "https://p2pkassa.online/api/v2/link",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${hash}`,
+					},
+					data: jsonData,
+				}
+				//console.log(options)
+
+				try {
+					const response = await axios(options)
+					console.log(`response link: ${response.data.link}`)
+					console.log(`response id: ${response.data.id}`)
+					if (response && response.data.link && response.data.id) {
+						const paymentUrl = response.data.link
+						paymentId = response.data.id
+
+						const dataUpdate = {
+							id: paymentId,
+							order_id: order_id,
+							project_id: project_id,
+						}
+
+						const jsonDataUpdate = JSON.stringify(dataUpdate)
+						//console.log(jsonDataUpdate)
+						const joinStringUpdate = `${apikey}${paymentId}${order_id}${project_id}`
+						//console.log(joinStringUpdate)
+						const hashUpdate = crypto
+							.createHash("sha512")
+							.update(joinStringUpdate)
+							.digest("hex")
+
+						const optionsUpdate = {
+							method: "POST",
+							url: "https://p2pkassa.online/api/v2/getPayment",
+							headers: {
+								"Content-Type": "application/json",
+								Authorization: `Bearer ${hashUpdate}`,
+							},
+							data: jsonDataUpdate,
+						}
+						//console.log(JSON.stringify(optionsUpdate))
+						try {
+							const responseUpdate = await axios(optionsUpdate)
+
+							//console.log(`response: ${JSON.stringify(responseUpdate.data)}`)
+
+							status = responseUpdate.data.status
+							console.log("Статус оплаты:", status)
+							const userOrderString = user.rows[0].userOrder
+							console.log(`order: ${userOrderString}`)
+							let currentOrders = userOrderString
+								? JSON.parse(userOrderString)
+								: []
+							console.log(`currentOrders: ${currentOrders}`)
+							const newOrder = {
+								id: productId,
+								name: name,
+								order_id: order_id,
+								price: price,
+								size: size,
+								status: status,
+								time: time,
+								saveBonus: saveUserBonus,
+								newBonus: getUserBonus,
+							}
+							console.log(`newOrder : ${newOrder}`)
+							const updatedOrders = currentOrders.concat(newOrder)
+							console.log("currentOrders before update:", updatedOrders)
+
+							await db.query(
+								'UPDATE "Users" SET "userOrder" = $1 WHERE "userId" = $2',
+								[JSON.stringify(updatedOrders), userId]
+							)
+
+							console.log("Заказ успешно добавлен.")
+
+							console.log(`paymentUrl: ${paymentUrl}`)
+							return res.json({ paymentUrl })
+						} catch (error) {
+							console.error(`Отстутствует ссылка в оплате`)
+						}
+					} else {
+						console.log(`Не авторизован`)
+					}
+				} catch (error) {
+					console.error(
+						`Ошибка HTTP: ${JSON.stringify(
+							error.response.status
+						)}, Сообщение: ${JSON.stringify(error.response.data)}`
+					)
+				}
+			}
+		} catch (e) {
+			console.error(`Ошибка авторизации`)
 		}
 	}
 }
