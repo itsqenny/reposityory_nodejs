@@ -7,6 +7,15 @@ class ProductController {
 		const products = await db.query('SELECT * FROM "Sneakers"')
 		res.json(products.rows)
 	}
+	async getProduct(req, res) {
+		const { id } = req.params
+
+		const product = await db.query('SELECT * FROM "Sneakers" WHERE id = $1', [
+			id,
+		])
+
+		res.json(product.rows[0])
+	}
 	async getProductsV1(req, res) {
 		const products = await db.query('SELECT * FROM "Shoes"')
 		res.json(products.rows)
