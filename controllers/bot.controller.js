@@ -127,6 +127,101 @@ class BotController {
 			}
 		}
 	}
+	async PaymentWithOpertor(req, res) {
+		const {
+			productId,
+			price,
+			queryId,
+			size,
+			name,
+			userId,
+			order_id,
+			time,
+			remainingBonus,
+			saveBonus,
+			newBonus,
+		} = req.body
+		console.log(req.body)
+
+		try {
+			const userResult = await db.query(
+				'SELECT * FROM "Users" WHERE "userId" = $1',
+				[userId]
+			)
+
+			if (userResult.rows.length > 0) {
+				const user = userResult.rows[0]
+				const status = "WAIT"
+				const userOrderString = user.userOrder
+				let currentOrders = userOrderString ? JSON.parse(userOrderString) : []
+				console.log(`currentOrders: ${JSON.stringify(currentOrders)}`)
+
+				const newOrder = {
+					id: productId,
+					name: name,
+					queryId: queryId,
+					order_id: order_id,
+					price: price,
+					size: size,
+					status: status,
+					time: time,
+					saveBonus: saveBonus,
+					newBonus: newBonus,
+				}
+				console.log(`newOrder : ${JSON.stringify(newOrder)}`)
+
+				const updatedOrders = [...currentOrders, newOrder]
+				console.log(
+					"currentOrders before update:",
+					JSON.stringify(updatedOrders)
+				)
+
+				await db.query(
+					'UPDATE "Users" SET "userOrder" = $1 WHERE "userId" = $2',
+					[JSON.stringify(updatedOrders), userId]
+				)
+
+				console.log("Заказ успешно добавлен.")
+
+				const message_text = `Привет, тест
+                 ${productId}
+                 ${price}
+                 ${size}
+                 ${name}
+                 ${userId},
+                 ${order_id}
+                 ${time}
+                 ${remainingBonus}
+                 ${saveBonus}
+                 ${newBonus}
+                `
+
+				const chatId = userId
+
+				try {
+					await bot.answerWebAppQuery(queryId, {
+						type: "article",
+						id: userId,
+						title: "Связь с оператором",
+						input_message_content: {
+							message_text: message_text,
+						},
+					})
+					return res.status(200).json(status)
+				} catch (error) {
+					// Обработка ошибки
+					console.error(error)
+					return res.status(500).json({})
+				}
+			} else {
+				// Если пользователь не найден, обработка ошибки или возврат 404
+				return res.status(404).json({ error: "Пользователь не найден" })
+			}
+		} catch (error) {
+			console.error(error)
+			return res.status(500).json({ error: "Internal server error" })
+		}
+	}
 }
 
 module.exports = new BotController()
