@@ -3,6 +3,8 @@ const db = require("../DB/db")
 const TelegramBot = require("node-telegram-bot-api")
 const crypto = require("crypto")
 const bot = require("../Telegram/app")
+const axios = require("axios")
+const FormData = require("form-data")
 
 class BotController {
 	async createUser({ userId, first_name, last_name, username }) {
@@ -140,6 +142,7 @@ class BotController {
 			remainingBonus,
 			saveBonus,
 			newBonus,
+			image,
 		} = req.body
 		console.log(req.body)
 
@@ -183,28 +186,45 @@ class BotController {
 
 				console.log("Заказ успешно добавлен.")
 
-				const message_text = `Привет, тест
-                 ${productId}
-                 ${price}
-                 ${size}
-                 ${name}
-                 ${userId},
-                 ${order_id}
-                 ${time}
-                 ${remainingBonus}
-                 ${saveBonus}
-                 ${newBonus}
-                `
+				const caption = `
+<b>${name}</b>
+Размер: ${size} EU
+Цена: ${price} ₽
+№${order_id}
+Создан: ${time}
+`.trim()
 
 				const chatId = userId
 
 				try {
+					// Создание FormData для отправки файла
+					const form = new FormData()
+					form.append("photo", image)
+					form.append("chat_id", chatId)
+					form.append("caption", caption)
+					form.append("parse_mode", "HTML")
+
+					// Отправка фото с подписью
+					await axios.post(
+						`https://api.telegram.org/bot${process.env.TOKEN}/sendPhoto`,
+						form,
+						{
+							headers: form.getHeaders(),
+						}
+					)
 					await bot.answerWebAppQuery(queryId, {
 						type: "article",
 						id: userId,
-						title: "Связь с оператором",
+						title: "Заказ отправлен",
 						input_message_content: {
-							message_text: message_text,
+							message_text: `
+🎉 Ваш заказ успешно передан оператору! 
+
+⏳ Пожалуйста, оставайтесь на связи. Наш оператор свяжется с вами в ближайшее время для подтверждения деталей заказа.
+
+🙏 Благодарим за ваше терпение и доверие к нашему сервису!
+        `.trim(),
+							parse_mode: "HTML",
 						},
 					})
 					return res.status(200).json(status)
