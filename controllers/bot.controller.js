@@ -203,24 +203,40 @@ class BotController {
 🙏 Благодарим за ваше терпение и доверие к нашему сервису!
         `
 				const chatId = userId
-
+				const webAppUrl = "https://repository-appnextjs.vercel.app/"
+				const keyboard = {
+					inline_keyboard: [
+						[
+							{
+								text: "Открыть в приложении",
+								web_app: {
+									url: `${webAppUrl}/order/id=${productId}&name=${name}&ConfirmPrice=${price}&ConfirmSize=${size}&orderId=${order_id}/`,
+								},
+							},
+						],
+					],
+				}
 				try {
-					// Создание FormData для отправки файла
-					const form = new FormData()
-					form.append("photo", image)
-					form.append("chat_id", chatId)
-					form.append("caption", caption)
-					form.append("parse_mode", "HTML")
+					// Создаем объект с данными для отправки
+					const result = {
+						type: "photo",
+						id: "1",
+						photo_url: image,
+						thumb_url: image,
+						caption: caption,
+						parse_mode: "HTML",
+						reply_markup: keyboard,
+					}
 
-					// Отправка фото с подписью
+					// Используем answerWebAppQuery для отправки результата
 					await axios.post(
-						`https://api.telegram.org/bot${process.env.TOKEN}/sendPhoto`,
-						form,
+						`https://api.telegram.org/bot${process.env.TOKEN}/answerWebAppQuery`,
 						{
-							headers: form.getHeaders(),
+							web_app_query_id: queryId,
+							result: JSON.stringify(result),
 						}
 					)
-					await bot.sendMessage(chatId, message_text)
+
 					return res.status(200).json(status)
 				} catch (error) {
 					// Обработка ошибки
