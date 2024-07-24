@@ -143,6 +143,7 @@ class BotController {
 			saveBonus,
 			newBonus,
 			image,
+			skuId,
 		} = req.body
 		console.log(req.body)
 
@@ -187,16 +188,16 @@ class BotController {
 				console.log("Заказ успешно добавлен.")
 
 				const caption = `
-<b>${name}</b>
-Размер: ${size} EU
-Цена: ${price} ₽
-№${order_id}
-Создан: ${time}
-`.trim()
+	<b>${name}</b>
+	Размер: ${size} EU
+	Цена: ${price} ₽
+	№${order_id}
+	Создан: ${time}
+	`.trim()
 				const message_text = `
-⏳ Пожалуйста, оставайтесь на связи.
-👩‍💼 Наш оператор свяжется с вами в ближайшее время для подтверждения деталей заказа.
-`
+	⏳ Пожалуйста, оставайтесь на связи.
+	👩‍💼 Наш оператор свяжется с вами в ближайшее время для подтверждения деталей заказа.
+	`
 				const chatId = userId
 				const webAppUrl = "https://repository-appnextjs.vercel.app/"
 				const keyboard = {
@@ -220,14 +221,45 @@ class BotController {
 					form.append("parse_mode", "HTML")
 					form.append("reply_markup", JSON.stringify(keyboard))
 					// Отправка фото с подписью
-					await axios.post(
+					const response = await axios.post(
 						`https://api.telegram.org/bot${process.env.TOKEN}/sendPhoto`,
 						form,
 						{
 							headers: form.getHeaders(),
 						}
 					)
+					const messageId = response.data.result.message_id
+					const channelId = "5463868504"
+					const forwardedMsg = await bot.forwardMessage(
+						channelId,
+						chatId,
+						messageId
+					)
 					await bot.sendMessage(chatId, message_text)
+					const channelMessageText = `
+		🆕 Новый заказ!
+
+		👤 Пользователь: ${userId}
+		🏷️ ${name}
+		📏 ${size} EU
+		💰 ${price} ₽
+		№ ${order_id}
+		🕒 ${time}
+
+		💎 Бонусы:
+		Списано: ${saveBonus || 0}
+		Начисленно: ${newBonus || 0}
+
+		🔗 Ссылка на товар: https://m.dewu.com/router/product/ProductDetail?spuId=${productId}&skuId=${skuId}
+
+		👩‍💼 Оператор, пожалуйста, обработайте заказ.
+			`.trim()
+
+					// Отправка сообщения в канал
+					await bot.sendMessage(channelId, channelMessageText, {
+						reply_to_message_id: forwardedMsg.message_id,
+						parse_mode: "HTML",
+					})
 					return res.status(200).json(status)
 				} catch (error) {
 					// Обработка ошибки
