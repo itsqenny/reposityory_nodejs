@@ -3,7 +3,7 @@ const bot = require("../app")
 const description = require("../components/description")
 const botController = require("../../controllers/bot.controller")
 const BotStart = () => {
-	const allowedChatIds = process.env.ADMIN_CHATID
+	const allowedChatIds = [5463868504]
 	bot.on("message", async (msg) => {
 		const text = msg.text
 		const chatId = msg.chat.id
