@@ -146,7 +146,7 @@ class BotController {
 			skuId,
 		} = req.body
 		console.log(req.body)
-
+		const allowedChatIds = [5463868504, 6241433836]
 		try {
 			const userResult = await db.query(
 				'SELECT * FROM "Users" WHERE "userId" = $1',
@@ -195,18 +195,22 @@ class BotController {
 	Создан: ${time}
 	`.trim()
 				const message_text = `
-	⏳ Пожалуйста, оставайтесь на связи.
-	👩‍💼 Наш оператор свяжется с вами в ближайшее время для подтверждения деталей заказа.
+⏳ Пожалуйста, оставайтесь на связи.
+👩‍💼 Наш оператор свяжется с вами в ближайшее время для подтверждения деталей заказа.
 	`
 				const chatId = userId
-				const webAppUrl = "https://repository-appnextjs.vercel.app/"
+				const webAppUrl = "https://repository-appnextjs.vercel.app"
+
+				const encodedName = encodeURIComponent(name)
+				const encodedPrice = encodeURIComponent(price)
+				const encodedSize = encodeURIComponent(size)
 				const keyboard = {
 					inline_keyboard: [
 						[
 							{
 								text: "Открыть в приложении",
 								web_app: {
-									url: `${webAppUrl}/order/id=${productId}&name=${name}&ConfirmPrice=${price}&ConfirmSize=${size}&orderId=${order_id}/`,
+									url: `${webAppUrl}/order/id=${productId}&name=${encodedName}&ConfirmPrice=${encodedPrice}&ConfirmSize=${encodedSize}&orderId=${order_id}`,
 								},
 							},
 						],
@@ -231,7 +235,7 @@ class BotController {
 					const messageId = response.data.result.message_id
 					const channelId = "5463868504"
 					const forwardedMsg = await bot.forwardMessage(
-						channelId,
+						allowedChatIds,
 						chatId,
 						messageId
 					)
@@ -256,15 +260,18 @@ class BotController {
 			`.trim()
 
 					// Отправка сообщения в канал
-					await bot.sendMessage(channelId, channelMessageText, {
+					await bot.sendMessage(allowedChatIds, channelMessageText, {
 						reply_to_message_id: forwardedMsg.message_id,
 						parse_mode: "HTML",
 					})
 					return res.status(200).json(status)
 				} catch (error) {
-					// Обработка ошибки
-					console.error(error)
-					return res.status(500).json({})
+					console.error("Error details:", error.response?.data)
+					console.error("Error status:", error.response?.status)
+					console.error("Error headers:", error.response?.headers)
+					return res
+						.status(500)
+						.json({ error: "Error sending photo to Telegram" })
 				}
 			} else {
 				// Если пользователь не найден, обработка ошибки или возврат 404
