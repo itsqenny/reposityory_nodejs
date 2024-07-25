@@ -146,7 +146,7 @@ class BotController {
 			skuId,
 		} = req.body
 		console.log(req.body)
-		const allowedChatIds = [5463868504, 6241433836]
+		const allowedChatIds = "6241433836"
 		try {
 			const userResult = await db.query(
 				'SELECT * FROM "Users" WHERE "userId" = $1',
