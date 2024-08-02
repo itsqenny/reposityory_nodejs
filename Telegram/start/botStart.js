@@ -4,6 +4,7 @@ const description = require("../components/description")
 const botController = require("../../controllers/bot.controller")
 const BotStart = () => {
 	const allowedChatIds = [5463868504, 6241433836]
+	const operatorId = "6241433836"
 	bot.on("message", async (msg) => {
 		const text = msg.text
 		const chatId = msg.chat.id
@@ -17,7 +18,7 @@ const BotStart = () => {
 			last_name,
 			username,
 		})
-		const operatorId = "5463868504"
+
 		const forwardedMsg = await bot.forwardMessage(
 			operatorId,
 			chatId,
